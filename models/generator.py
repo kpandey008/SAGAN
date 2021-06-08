@@ -56,7 +56,6 @@ class Generator(nn.Module):
         #### Attention 1 ####
         identity = out
         B, C, H, W = out.shape
-        print(out.shape)
         q_1 = out.view(H * W, B, C)
         k_1 = out.view(H * W, B, C)
         v_1 = out.view(H * W, B, C)
@@ -71,7 +70,6 @@ class Generator(nn.Module):
         #### Attention 2 ####
         identity = out
         B, C, H, W = out.shape
-        print(out.shape)
         q_2 = out.view(H * W, B, C)
         k_2 = out.view(H * W, B, C)
         v_2 = out.view(H * W, B, C)
