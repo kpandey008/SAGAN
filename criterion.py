@@ -24,6 +24,6 @@ class DiscriminatorHingeLoss(nn.Module):
         self.reduction = reduction
 
     def forward(self, fake_out, real_out):
-        real_loss = -torch.min(0, real_out - 1)
-        fake_loss = -torch.min(0, -1 - fake_out)
+        real_loss = -torch.minimum(torch.zeros_like(real_out), real_out - 1).mean()
+        fake_loss = -torch.minimum(torch.zeros_like(fake_out), -1 - fake_out).mean()
         return real_loss + fake_loss

@@ -1,10 +1,6 @@
 import copy
-import gc
-import numpy as np
 import os
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 from prettytable import PrettyTable
 from tqdm import tqdm
@@ -317,31 +313,33 @@ class SAGANTrainer(GANTrainer):
         self.chkpt_name = "sagan_chkpt"
 
     def gen_train_step(self, inputs):
-        B, _, _, _ = inputs[0].shape
+        B, _, _, _ = inputs.shape
         z = torch.normal(0, 1, size=(B, self.code_size)).to(self.device)
-        fake_images = self.gen_model(z)
-        disc_fake_out = self.disc_model(fake_images)
+        fake_images, _, _ = self.gen_model(z)
+        disc_fake_out, _, _ = self.disc_model(fake_images)
 
         gen_loss = self.gen_criterion(disc_fake_out)
         gen_loss.backward()
 
         # Update the generator
         self.gen_optimizer.step()
+        return gen_loss
 
     def disc_train_step(self, inputs):
-        real_images, _ = inputs
+        real_images = inputs
         B, _, _, _ = real_images.shape
         real_images = real_images.to(self.device)
 
         z = torch.normal(0, 1, size=(B, self.code_size)).to(self.device)
-        fake_images = self.gen_model(z)
-        disc_fake_out = self.disc_model(fake_images)
-        disc_real_out = self.disc_model(real_images)
+        fake_images, _, _ = self.gen_model(z)
+        disc_fake_out, _, _ = self.disc_model(fake_images)
+        disc_real_out, _, _ = self.disc_model(real_images)
         disc_loss = self.disc_criterion(disc_fake_out, disc_real_out)
         disc_loss.backward()
 
         # Update then Discriminator
         self.disc_optimizer.step()
+        return disc_loss
 
     def on_train_epoch_end(self):
         # Save checkpoints every 5 epochs
