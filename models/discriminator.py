@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 from torch.nn.utils import spectral_norm
@@ -30,11 +31,12 @@ class Discriminator(nn.Module):
         )
 
         self.output = nn.Conv2d(8 * self.conv_dim, 1, 4)
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
 
         self.attn1 = nn.MultiheadAttention(4 * self.conv_dim, num_heads=self.n_heads)
-        self.alpha = nn.Parameter(0, requires_grad=True)
+        self.alpha = nn.Parameter(torch.tensor(0.0), requires_grad=True)
         self.attn2 = nn.MultiheadAttention(8 * self.conv_dim, num_heads=self.n_heads)
-        self.beta = nn.Parameter(0, requires_grad=True)
+        self.beta = nn.Parameter(torch.tensor(0.0), requires_grad=True)
 
     def forward(self, x):
         out = self.layer1(x)
@@ -48,6 +50,7 @@ class Discriminator(nn.Module):
         k_1 = out.view(H * W, B, C)
         v_1 = out.view(H * W, B, C)
         out, attn_map_1 = self.attn1(q_1, k_1, v_1)
+        out = out.view(B, C, H, W)
 
         # Residual connection
         out = identity + self.alpha * out
@@ -60,9 +63,11 @@ class Discriminator(nn.Module):
         q_2 = out.view(H * W, B, C)
         k_2 = out.view(H * W, B, C)
         v_2 = out.view(H * W, B, C)
-        out, attn_map_2 = self.attn1(q_2, k_2, v_2)
+        out, attn_map_2 = self.attn2(q_2, k_2, v_2)
+        out = out.view(B, C, H, W)
 
         # Residual connection
         out = identity + self.beta * out
+        out = self.avg_pool(self.output(out))
 
-        return self.output(out), attn_map_1, attn_map_2
+        return out.squeeze(), attn_map_1, attn_map_2
