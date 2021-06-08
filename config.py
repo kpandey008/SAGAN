@@ -1,9 +1,37 @@
+import numpy as np
+import random
 import torch
 import torch.optim as optim
 import torch.nn as nn
 
 
 _SUPPORTED_DEVICES = ["cpu", "gpu"]
+
+
+def seed_everything(seed=0):
+    # NOTE: Uses the implementation from Pytorch Lightning
+    """Function that sets seed for pseudo-random number generators  in:
+    pytorch, numpy, python.random
+    """
+    max_seed_value = np.iinfo(np.uint32).max
+    min_seed_value = np.iinfo(np.uint32).min
+
+    if (seed > max_seed_value) or (seed < min_seed_value):
+        raise ValueError(
+            f"{seed} is not in bounds, \
+            numpy accepts from {min_seed_value} to {max_seed_value}"
+        )
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.set_default_tensor_type("torch.FloatTensor")
+
+    # Set a deterministic CuDNN backend
+    if torch.cuda.is_available():
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    return seed
 
 
 def configure_device(device):
