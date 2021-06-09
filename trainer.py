@@ -238,7 +238,8 @@ class GANTrainer:
         models = [self.gen_model, self.disc_model]
         optimizers = [self.gen_optimizer, self.disc_optimizer]
         model_keys = ["generator", "discriminator"]
-        for idx, model, optimizer in enumerate(zip(models, optimizers)):
+
+        for idx, (model, optimizer) in enumerate(zip(models, optimizers)):
             model_state = copy.deepcopy(model.state_dict())
             model_state = {
                 k: v.cpu() if isinstance(v, torch.Tensor) else v
@@ -341,7 +342,7 @@ class SAGANTrainer(GANTrainer):
         disc_loss = self.disc_criterion(disc_fake_out, disc_real_out)
         disc_loss.backward()
 
-        # Update then Discriminator
+        # Update the Discriminator
         self.disc_optimizer.step()
         return disc_loss
 
@@ -356,8 +357,9 @@ class SAGANTrainer(GANTrainer):
             if self.step_idx % self.sample_interval == 0:
                 self.gen_model.eval()
                 with torch.no_grad():
-                    sample_z = torch.normal(0, 1, size=(16, self.code_size))
-                    sample_images = self.gen_model(sample_z)
+                    sample_z = torch.normal(0, 1, size=(32, self.code_size))
+                    sample_images, _, _ = self.gen_model(sample_z)
+
                 # Save these images
                 save_path = os.path.join(self.results_dir, "samples")
                 os.makedirs(save_path, exist_ok=True)
@@ -370,6 +372,7 @@ class SAGANTrainer(GANTrainer):
                     nrow=4,
                     scale_each=True,
                     range=(0, 1),
+                    padding=1,
                 )
 
     def on_train_epoch_end(self):
