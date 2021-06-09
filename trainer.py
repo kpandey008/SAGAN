@@ -392,6 +392,7 @@ class SAGANTrainerv2(GANTrainer):
         self.disc_criterion = DiscriminatorHingeLoss()
         self.best_score = 0
         self.chkpt_name = "sagan_chkpt"
+        self.sample_z = torch.normal(0, 1, size=(32, self.code_size))
 
     def gen_train_step(self, inputs):
         B, _, _, _ = inputs.shape
@@ -433,9 +434,7 @@ class SAGANTrainerv2(GANTrainer):
             if self.step_idx % self.sample_interval == 0:
                 self.gen_model.eval()
                 with torch.no_grad():
-                    sample_z = torch.normal(0, 1, size=(32, self.code_size)).to(
-                        self.device
-                    )
+                    sample_z = self.sample_z.to(self.device)
                     sample_images, _ = self.gen_model(sample_z)
 
                 # Save these images
