@@ -4,6 +4,7 @@ import torch
 
 from prettytable import PrettyTable
 from tqdm import tqdm
+from torchvision.utils import save_image
 
 from config import configure_device, get_lr_scheduler, get_optimizer
 from criterion import GeneratorHingeLoss, DiscriminatorHingeLoss
@@ -21,6 +22,7 @@ class GANTrainer:
         gen_lr=0.0001,
         disc_lr=0.0001,
         imbalance_factor=1,
+        sample_interval=None,
         log_step=50,
         n_train_steps_per_epoch=None,
         gen_optimizer="Adam",
@@ -38,6 +40,7 @@ class GANTrainer:
         self.gen_lr = gen_lr
         self.disc_lr = disc_lr
         self.imbalance_factor = imbalance_factor
+        self.sample_interval = sample_interval
         self.device = configure_device(backend)
         self.val_loader = val_loader
         self.log_step = log_step
@@ -77,12 +80,12 @@ class GANTrainer:
 
         # Generate Model parameter summary here
         print("Model Params profile:")
-        p_table = PrettyTable()
-        p_table.field_names = ["Name", "Trainable Params", "Total Params"]
         total_params = 0
         total_trainable = 0
 
         for model in models:
+            p_table = PrettyTable()
+            p_table.field_names = ["Name", "Trainable Params", "Total Params"]
             print(f"Model: {model.__class__.__name__}")
             for name, mod in model.named_children():
                 n_trainable_params = 0
@@ -94,7 +97,8 @@ class GANTrainer:
                 total_params += n_params
                 total_trainable += n_trainable_params
                 p_table.add_row([name, n_trainable_params, n_params])
-        print(p_table)
+            print(p_table)
+
         print(f"Total Trainable Params: {total_trainable}")
         print(f"Total Params: {total_params}")
 
@@ -181,7 +185,7 @@ class GANTrainer:
                 self.disc_optimizer.zero_grad()
                 d_step_loss += self.disc_train_step(inputs)
 
-            self.on_train_step_end()
+            self.on_train_step_end(inputs, g_step_loss, d_step_loss)
             gen_epoch_loss += g_step_loss
             disc_epoch_loss += d_step_loss
             self.step_idx += 1
@@ -200,7 +204,7 @@ class GANTrainer:
     def on_train_epoch_end(self):
         pass
 
-    def on_train_step_end(self):
+    def on_train_step_end(self, *args):
         pass
 
     def eval(self):
@@ -340,6 +344,33 @@ class SAGANTrainer(GANTrainer):
         # Update then Discriminator
         self.disc_optimizer.step()
         return disc_loss
+
+    def on_train_step_end(self, inputs, gen_loss, disc_loss):
+        if self.step_idx % self.log_step == 0:
+            self.train_progress_bar.set_postfix_str(
+                f"Step {self.step_idx + 1} : Gen Loss: {gen_loss.item():.4f}  Disc Loss: {disc_loss.item()}"
+            )
+
+        # Generate some random samples and save for visualization
+        if self.sample_interval is not None:
+            if self.step_idx % self.sample_interval == 0:
+                self.gen_model.eval()
+                with torch.no_grad():
+                    sample_z = torch.normal(0, 1, size=(16, self.code_size))
+                    sample_images = self.gen_model(sample_z)
+                # Save these images
+                save_path = os.path.join(self.results_dir, "samples")
+                os.makedirs(save_path, exist_ok=True)
+                save_image(
+                    sample_images,
+                    os.path.join(
+                        save_path, f"samples_{self.step_idx}_{self.epoch_idx}.png"
+                    ),
+                    normalize=True,
+                    nrow=4,
+                    scale_each=True,
+                    range=(0, 1),
+                )
 
     def on_train_epoch_end(self):
         # Save checkpoints every 5 epochs
