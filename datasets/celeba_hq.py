@@ -7,8 +7,8 @@ from tqdm import tqdm
 
 
 # A very simplistic implementation of the CelebA dataset supporting only images and no annotations
-# TODO: Add functionality to download CelebA and setup the dataset automatically
-class CelebADataset(Dataset):
+# TODO: Add functionality to download CelebA-MaskHQ and setup the dataset automatically
+class CelebAMaskHQDataset(Dataset):
     def __init__(self, root, subsample_size=None, transform=None, **kwargs):
         if not os.path.isdir(root):
             raise ValueError(f"The specified root: {root} does not exist")
@@ -17,8 +17,9 @@ class CelebADataset(Dataset):
 
         self.images = []
 
-        for img in tqdm(os.listdir(root)):
-            self.images.append(os.path.join(self.root, img))
+        img_path = os.path.join(self.root, "CelebA-HQ-img")
+        for img in tqdm(os.listdir(img_path)):
+            self.images.append(os.path.join(img_path, img))
 
         # Subsample the dataset (if enabled)
         if subsample_size is not None:
@@ -41,6 +42,6 @@ class CelebADataset(Dataset):
 
 
 if __name__ == "__main__":
-    root = "/data/kushagrap20/datasets/img_align_celeba"
-    dataset = CelebADataset(root, subsample_size=10000)
+    root = "/data/kushagrap20/datasets/CelebAMask-HQ"
+    dataset = CelebAMaskHQDataset(root, subsample_size=10000)
     print(len(dataset))
