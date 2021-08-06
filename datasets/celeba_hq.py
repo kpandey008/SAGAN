@@ -18,16 +18,14 @@ class CelebAMaskHQDataset(Dataset):
         self.images = []
 
         img_path = os.path.join(self.root, "CelebA-HQ-img")
-        for img in tqdm(os.listdir(img_path)):
+        for img in tqdm(sorted(os.listdir(img_path))):
             self.images.append(os.path.join(img_path, img))
 
         # Subsample the dataset (if enabled)
         if subsample_size is not None:
             # To enable deterministic samples set a random seed at
             # a global level
-            self.images = np.random.choice(
-                self.images, size=subsample_size, replace=False
-            )
+            self.images = self.images[:subsample_size]
 
     def __getitem__(self, idx):
         img_path = self.images[idx]
