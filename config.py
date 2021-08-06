@@ -4,6 +4,8 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 
+from datasets import CelebAMaskHQDataset, CelebADataset
+
 
 _SUPPORTED_DEVICES = ["cpu", "gpu"]
 
@@ -32,6 +34,18 @@ def seed_everything(seed=0):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
     return seed
+
+
+def get_dataset(name, root, **kwargs):
+    if name == "celeba":
+        dataset = CelebADataset(root, **kwargs)
+    elif name == "celeba-hq":
+        dataset = CelebAMaskHQDataset(root, **kwargs)
+    else:
+        raise NotImplementedError(
+            f"The dataset {name} does not exist in our datastore."
+        )
+    return dataset
 
 
 def configure_device(device):
