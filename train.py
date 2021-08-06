@@ -1,15 +1,13 @@
 import click
 import os
-import torch
 import torchvision.transforms as T
 
 from torch.utils.data import DataLoader
 
-from config import seed_everything
-from datasets.celeba import CelebADataset
+from config import seed_everything, get_dataset
 from models.generator import SAGANGenerator
 from models.discriminator import SAGANDiscriminator
-from trainer import SAGANTrainerv2
+from trainers.sagan import SAGANTrainerv2
 
 
 @click.group()
@@ -19,26 +17,32 @@ def cli():
 
 @cli.command()
 @click.argument("root")
-@click.option("--n_epochs", default=100)
-@click.option("--gen_lr", default=0.0001)
-@click.option("--disc_lr", default=0.0004)
-@click.option("--z_dim", default=128)
-@click.option("--in_channels", default=512)
-@click.option("--batch_size", default=64)
-@click.option("--n_workers", default=2)
-@click.option("--random_state", default=0)
+@click.option("--code-size", default=128)
+@click.option("--dataset", default="celeba-hq")
+@click.option("--subsample", default=-1)
+@click.option("--chkpt-interval", default=10)
+@click.option("--n-epochs", default=1000)
+@click.option("--gen-lr", default=0.0001, type=float)
+@click.option("--disc-lr", default=0.0004, type=float)
+@click.option("--in-channels", default=512)
+@click.option("--batch-size", default=64)
+@click.option("--n-workers", default=2)
+@click.option("--random-state", default=0)
 @click.option("--backend", default="gpu")
-@click.option("--sample_interval", default=300)
-@click.option("--log_step", default=1)
-@click.option("--n_train_steps_per_epoch", default=None)
-@click.option("--results_dir", default=os.getcwd())
-@click.option("--restore_path", default=None)
+@click.option("--sample-interval", default=300)
+@click.option("--log-step", default=1)
+@click.option("--n-train-steps-per-epoch", default=None)
+@click.option("--results-dir", default=os.getcwd())
+@click.option("--restore-path", default=None)
 def train(
     root,
-    n_epochs=100,
+    dataset="celeba-hq",
+    subsample=-1,
+    code_size=128,
+    chkpt_interval=10,
+    n_epochs=1000,
     gen_lr=0.0001,
     disc_lr=0.0004,
-    z_dim=128,
     in_channels=512,
     batch_size=64,
     n_workers=2,
@@ -54,18 +58,19 @@ def train(
     seed_everything(seed=random_state)
 
     # Define some Preprocessing transforms
-    # Currently only supports 64 x 64 size training
     transform = T.Compose(
         [
-            T.Resize(64),
-            T.CenterCrop(64),
+            T.Resize(128),
+            T.CenterCrop(128),
             T.ToTensor(),
             T.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]),
         ]
     )
 
     # Dataset and Loader
-    dataset = CelebADataset(root, transform=transform)
+    dataset = get_dataset(
+        root, transform=transform, subsample_size=subsample if subsample != -1 else None
+    )
     train_loader = DataLoader(
         dataset,
         batch_size=batch_size,
@@ -75,14 +80,16 @@ def train(
     )
 
     # Model loading
-    gen = SAGANGenerator(z_dim=z_dim, in_channels=in_channels)
+    gen = SAGANGenerator(z_dim=code_size, in_channels=in_channels)
     disc = SAGANDiscriminator()
 
     # Trainer
     trainer = SAGANTrainerv2(
-        train_loader,
-        gen,
-        disc,
+        code_size=code_size,
+        chkpt_interval=chkpt_interval,
+        train_loader=train_loader,
+        gen_model=gen,
+        disc_model=disc,
         backend=backend,
         num_epochs=n_epochs,
         gen_lr=gen_lr,
