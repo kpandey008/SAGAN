@@ -54,9 +54,9 @@ class SAGANGenerator(nn.Module):
         self.alpha = nn.Parameter(torch.tensor(0.0), requires_grad=True)
 
         self.last = nn.Sequential(
-            nn.BatchNorm2d(32),
+            nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.Conv2d(32, 3, 3, 1, padding=1),
+            nn.Conv2d(16, 3, 3, 1, padding=1),
         )
 
     def forward(self, z):

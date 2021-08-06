@@ -8,7 +8,7 @@ from trainers.criterion import GeneratorHingeLoss, DiscriminatorHingeLoss
 
 
 class SAGANTrainerv2(GANTrainer):
-    def init(self, code_size, chkpt_interval=10, **kwargs):
+    def __init__(self, code_size, chkpt_interval=10, **kwargs):
         super().__init__(**kwargs)
         self.code_size = code_size
         self.chkpt_interval = chkpt_interval

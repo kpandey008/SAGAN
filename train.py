@@ -68,11 +68,14 @@ def train(
     )
 
     # Dataset and Loader
-    dataset = get_dataset(
-        root, transform=transform, subsample_size=subsample if subsample != -1 else None
+    train_dataset = get_dataset(
+        dataset,
+        root,
+        transform=transform,
+        subsample_size=subsample if subsample != -1 else None,
     )
     train_loader = DataLoader(
-        dataset,
+        train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=n_workers,
